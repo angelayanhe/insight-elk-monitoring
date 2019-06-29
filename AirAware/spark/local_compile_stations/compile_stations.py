@@ -186,7 +186,7 @@ def main():
     ##################################################
 
     # Link to data file containing station data
-    raw = 'file://///Users/yanhe/Documents/insights/Project/insight-monitoring-poc/AirAware/spark/local_compile_stations/aqs_sites.csv'
+    raw = 'file://///Users/yanhe/Documents/insights/Project/insight-elk-monitoring/AirAware/spark/local_compile_stations/aqs_sites.csv'
 
     # Define RDD reading in station data
     data_rdd = sc.textFile(raw, 3)

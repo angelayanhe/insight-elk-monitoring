@@ -19,7 +19,7 @@ def insert_records(commands):
     #               + config["postgres"]["user"] + ':' + config["postgres"]["password"]\
     #               + '@localhost:' + config["postgres"]["port"] + '/' + config["postgres"]["db"]
 
-    postgres_url = 'postgresql://cheuklau:insight@localhost:5432/monthlydb'
+    postgres_url = 'postgresql://user:password@localhost:5432/monthlydb'
     
     conn = None
     try:
