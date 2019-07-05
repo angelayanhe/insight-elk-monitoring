@@ -1,0 +1,2 @@
+{ "create" : { "_index": "tcp", "_id" : "1561501252" } }
+{ "id": "1561501252", "epochtime": 1561501252, "date": "2019-06-25 15:20:52", "Recv-Q":"0", "Send-Q":"260", "LocalPort": "ssh", "LocalAddress": "ip-172-31-22-113.us", "ForeignAddress": "c-67-169-38-238.h" ForeignPort": "54389", "State": "ESTABLISHED"}
