@@ -11,7 +11,6 @@ from flask.logging import default_handler
 from time import strftime
 import pdb
 
-# add logging with logging.conf
 logging.config.dictConfig(yaml.load(open('logging.conf'),Loader=yaml.FullLoader))
   
 # Create app object
@@ -19,12 +18,6 @@ app = Flask(__name__)
 app.config.from_object('config.DevelopmentConfig')
 
 logger=logging.getLogger(__name__)
-for logger in (
-  #app.logger,
-  logging.getLogger('file'),
-  #logging.getLogger('console')
-):
-  logger.addHandler(default_handler)
 
 # Create Google Map keys
 GoogleMapsKey = app.config["GOOGLEMAPSKEY"]
