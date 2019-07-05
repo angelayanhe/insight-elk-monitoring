@@ -8,95 +8,49 @@ todo: tighter VPC and subnet definitions for each instance.
 */
 
 ##############################################
-# Prometheus
+# ELK
 ##############################################
-
-resource "aws_instance" "prometheus" {
-  ami = "${lookup(var.AMIS, "ubuntu")}" 
-  instance_type = "t2.small"
+resource "aws_instance" "elk" {
+  ami = "${lookup(var.AMIS, "ubuntu")}"
+  instance_type = "m4.large"
   key_name = "${aws_key_pair.mykeypair.key_name}"
   count = 1
   vpc_security_group_ids = ["${aws_security_group.open-security-group.id}"]
   subnet_id = "${aws_subnet.main-public.id}"
   associate_public_ip_address = true
+  root_block_device {
+    volume_size = 8
+    volume_type = "standard"
+  }
   tags {
-    Name = "prometheus"
+    Name = "elk"
     Environment = "dev"
     Terraform = "true"
-  } 
-}
+  }
+ } 
+  
+  resource "null_resource" "elk" {
 
-# Configure prometheus
-resource "null_resource" "prometheus" {
-
-  # Establish connection to worker
+   # Establish connection
   connection {
     type = "ssh"
-    user = "ubuntu"    
-    host = "${aws_instance.prometheus.public_ip}"
+    user = "ubuntu"  
+    host = "${aws_instance.elk.public_ip}"
     private_key = "${file("${var.PATH_TO_PRIVATE_KEY}")}"
   }
-
-  # We need the prometheus instance first
-  # We don't need other instances up first because we are using EC2 service discovery
-  depends_on = [ "aws_instance.prometheus" ]
-
-  # Provision the Prometheus configuration script
+  
+  # Provision the ELK setup script
   provisioner "file" {
-    source = "scripts/full_prometheus_setup.sh"
-    destination = "/tmp/full_prometheus_setup.sh"
+    source = "scripts/elk_setup.sh"
+    destination = "/tmp/elk_setup.sh"
   }
-
-  # Execute Prometheus configuration script remotely
+  
+  # Execute ELK configuration commands remotely
   provisioner "remote-exec" {
-    inline = [
-      "echo \"export AWS_ACCESS_KEY_ID='${var.AWS_ACCESS_KEY}'\nexport AWS_SECRET_ACCESS_KEY='${var.AWS_SECRET_KEY}'\nexport AWS_DEFAULT_REGION='${var.AWS_REGION}'\" >> ~/.profile",
-      "chmod +x /tmp/full_prometheus_setup.sh",
-      "bash /tmp/full_prometheus_setup.sh '${var.AWS_ACCESS_KEY}' '${var.AWS_SECRET_KEY}' '${var.AWS_REGION}' ",
-    ]
-  }
-}
-
-# Provision Grafana
-resource "null_resource" "grafana" {
-
-  # Establish connection to worker
-  connection {
-    type = "ssh"
-    user = "ubuntu"    
-    host = "${aws_instance.prometheus.public_ip}"
-    private_key = "${file("${var.PATH_TO_PRIVATE_KEY}")}"
-  }
-
-  # We need Prometheus and Grafana installed first
-  depends_on = [ "null_resource.prometheus" ]
-
-  # Provision the Grafana datasource file
-  provisioner "file" {
-    source = "scripts/datasource-prometheus.yaml"
-    destination = "/tmp/datasource-prometheus.yaml"
-  }
-
-  # Provision the Grafana dashboard file
-  provisioner "file" {
-    source = "scripts/dashboards.yaml"
-    destination = "/tmp/dashboards.yaml"
-  }
-
-  # Provision the Grafana dashboard JSON file
-  provisioner "file" {
-    source = "scripts/dashboards.json"
-    destination = "/tmp/dashboards.json"
-  }
-
-  # Move Prometheus configuration script remotely
-  provisioner "remote-exec" {
-    inline = [
-      "sudo mv /tmp/datasource-prometheus.yaml /etc/grafana/provisioning/datasources/",
-      "sudo mkdir /etc/grafana/provisioning/dashboards",
-      "sudo mv /tmp/dashboards.yaml /etc/grafana/provisioning/dashboards/",
-      "sudo mv /tmp/dashboards.json /var/lib/grafana/dashboards/",
-      "sudo systemctl restart grafana-server.service",
+    inline = [      
+	  "echo \"export AWS_ACCESS_KEY_ID='${var.AWS_ACCESS_KEY}'\nexport AWS_SECRET_ACCESS_KEY='${var.AWS_SECRET_KEY}'\nexport AWS_DEFAULT_REGION='${var.AWS_REGION}'\" >> ~/.profile",
+      "chmod +x /tmp/elk_setup.sh",
+      "bash /tmp/elk_setup.sh",
     ]
   }
 }
@@ -107,7 +61,7 @@ resource "null_resource" "grafana" {
 
 resource "aws_instance" "postgres" {
   ami = "${lookup(var.AMIS, "postgres")}"
-  instance_type = "t2.micro"
+  instance_type = "m4.large"
   key_name = "${aws_key_pair.mykeypair.key_name}"
   count = 1
   vpc_security_group_ids = ["${aws_security_group.open-security-group.id}"]
@@ -131,7 +85,7 @@ resource "aws_instance" "postgres" {
 # Master 
 resource "aws_instance" "spark-master" {
   ami = "${lookup(var.AMIS, "spark")}"
-  instance_type = "t2.micro"
+  instance_type = "m4.large"
   key_name = "${aws_key_pair.mykeypair.key_name}"
   count = 1
   vpc_security_group_ids = ["${aws_security_group.open-security-group.id}"] # Change later to private
@@ -153,7 +107,7 @@ resource "aws_instance" "spark-master" {
 # Workers
 resource "aws_instance" "spark-worker" {
   ami = "${lookup(var.AMIS, "spark")}"
-  instance_type = "t2.micro"
+  instance_type = "m4.large"
   key_name = "${aws_key_pair.mykeypair.key_name}"
   count = "${var.NUM_WORKERS}"
   vpc_security_group_ids = ["${aws_security_group.open-security-group.id}"]
@@ -330,7 +284,7 @@ resource "null_resource" "spark-master" {
 # Controller
 resource "aws_instance" "spark-controller" {
   ami = "${lookup(var.AMIS, "spark")}"
-  instance_type = "t2.micro"
+  instance_type = "m4.large"
   key_name = "${aws_key_pair.mykeypair.key_name}"
   count = 1
   vpc_security_group_ids = ["${aws_security_group.open-security-group.id}"]
@@ -389,7 +343,6 @@ resource "null_resource" "spark-controller" {
       "bash /tmp/spark_start.sh",
       "chmod +x /tmp/spark_setup_controller.sh",
       "bash /tmp/spark_setup_controller.sh '${aws_instance.postgres.private_dns}' '${aws_instance.spark-master.private_dns}'",
-	  "rm /tmp/spark_setup_controller.sh"
     ]
   }
 }
@@ -400,7 +353,7 @@ resource "null_resource" "spark-controller" {
 
 resource "aws_instance" "flask" {
   ami = "${lookup(var.AMIS, "flask")}"
-  instance_type = "t2.micro"
+  instance_type = "m4.large"
   key_name = "${aws_key_pair.mykeypair.key_name}"
   count = 1
   vpc_security_group_ids = ["${aws_security_group.open-security-group.id}"]
@@ -448,3 +401,4 @@ resource "null_resource" "flask" {
     ]
   }
 }
+
