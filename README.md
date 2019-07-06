@@ -48,7 +48,7 @@ Docker images are used to build the monitoring components such as Logstash, Elas
 Terraform is used to setup the virtual private cloud (VPC) and other security group settings. It is also used to spin up the AWS EC2 instances using the amazon machine images (AMIs) created by Packer and configures them accordingly. I also use terraform to spin up the monitoring instances using Docker images and configures them accordingly. 
 
 The following figure illustrates the technology infrastructure for the whole project:
-![Fig 1: Technology Infrastructure](/images/Technology_Infrastructure.png)
+![Fig 1: Technology Infrastructure](/images/technology_infrastructure.png)
 
 
 
